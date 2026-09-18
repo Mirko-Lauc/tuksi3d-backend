@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from typing import List
 
 from database import engine, Base, get_db
-import models.material  # Importante para que SQLAlchemy reconozca las tablas al arrancar
+import models.material
 from models.material import Material
 from schemas.cost import CostCalculationInput, CostCalculationOutput
 from schemas.material import MaterialCreate, MaterialResponse
@@ -21,10 +21,34 @@ async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-# --- Endpoint de Cálculo de Costos ---
+# --- Endpoint de Cálculo de Costos (Conectado a DB) ---
 @app.post("/calculate-cost", response_model=CostCalculationOutput)
-def calculate_cost(data: CostCalculationInput):
-    filament_cost = (data.grams_used / 1000.0) * data.filament_cost_per_kg
+async def calculate_cost(
+    data: CostCalculationInput,
+    db: AsyncSession = Depends(get_db)
+):
+    cost_per_kg = data.filament_cost_per_kg
+
+    # Si se envía un material_id, se busca el costo en la base de datos
+    if data.material_id:
+        result = await db.execute(select(Material).where(Material.id == data.material_id))
+        material = result.scalar_one_or_none()
+        if not material:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=f"Material con ID {data.material_id} no encontrado"
+            )
+        cost_per_kg = material.cost_per_kg
+
+    # Validación si no se ingresó ni material_id ni costo manual
+    if cost_per_kg is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Debes ingresar un 'material_id' o especificar 'filament_cost_per_kg'"
+        )
+
+    # Cálculos
+    filament_cost = (data.grams_used / 1000.0) * cost_per_kg
     kwh_used = (data.printer_power_watts / 1000.0) * data.print_time_hours
     electricity_cost = kwh_used * data.electricity_kwh_rate
     waste_cost = filament_cost * (data.waste_percentage / 100.0)

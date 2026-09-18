@@ -1,7 +1,13 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 
 
 class CostCalculationInput(BaseModel):
+    # Selección de material desde la base de datos (Opcional)
+    material_id: Optional[int] = Field(
+        None, description="ID del filamento guardado en la base de datos"
+    )
+
     # Datos de la pieza
     grams_used: float = Field(
         ..., gt=0, description="Peso de la pieza en gramos"
@@ -11,8 +17,8 @@ class CostCalculationInput(BaseModel):
     )
 
     # Datos del insumo y máquina
-    filament_cost_per_kg: float = Field(
-        25000.0, gt=0, description="Precio del kg de filamento en ARS"
+    filament_cost_per_kg: Optional[float] = Field(
+        None, gt=0, description="Precio del kg de filamento en ARS (manual)"
     )
     printer_power_watts: float = Field(
         150.0, gt=0, description="Consumo promedio de la impresora en Watts"
