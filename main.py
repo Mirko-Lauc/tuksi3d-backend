@@ -1,54 +1,74 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from typing import List
+
+from database import engine, Base, get_db
+import models.material  # Importante para que SQLAlchemy reconozca las tablas al arrancar
+from models.material import Material
 from schemas.cost import CostCalculationInput, CostCalculationOutput
+from schemas.material import MaterialCreate, MaterialResponse
 
 app = FastAPI(
-    title="Tuksi 3D API",
-    description="Backend para gestión y cálculo de costos de Tuksi 3D",
-    version="1.0.0",
+    title="Tuksi 3D - API",
+    description="Backend de gestión y cálculo de costos para impresión 3D",
+    version="1.0.0"
 )
 
+# Evento de inicio: crea las tablas en PostgreSQL si no existen
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-@app.get("/")
-def read_root():
-    return {"status": "online", "system": "Tuksi 3D Cost Engine"}
-
-
+# --- Endpoint de Cálculo de Costos ---
 @app.post("/calculate-cost", response_model=CostCalculationOutput)
 def calculate_cost(data: CostCalculationInput):
-    # 1. Costo base de filamento (con desperdicio)
-    cost_per_gram = data.filament_cost_per_kg / 1000.0
-    base_filament_cost = data.grams_used * cost_per_gram
-    waste_cost = base_filament_cost * (data.waste_percentage / 100.0)
-    total_filament_cost = base_filament_cost + waste_cost
+    filament_cost = (data.grams_used / 1000.0) * data.filament_cost_per_kg
+    kwh_used = (data.printer_power_watts / 1000.0) * data.print_time_hours
+    electricity_cost = kwh_used * data.electricity_kwh_rate
+    waste_cost = filament_cost * (data.waste_percentage / 100.0)
+    depreciation_cost = (filament_cost + electricity_cost) * (data.machine_depreciation_percentage / 100.0)
 
-    # 2. Costo de electricidad (Watts -> kW * Horas * Tarifa)
-    kw_consumed = (data.printer_power_watts / 1000.0) * data.print_time_hours
-    electricity_cost = kw_consumed * data.electricity_kwh_rate
+    total_production_cost = filament_cost + electricity_cost + waste_cost + depreciation_cost
 
-    # 3. Desgaste / Mantenimiento de máquina
-    subtotal_direct_cost = total_filament_cost + electricity_cost
-    depreciation_cost = subtotal_direct_cost * (
-        data.machine_depreciation_percentage / 100.0
-    )
-
-    # 4. Costo Total de Producción Real
-    total_cost = subtotal_direct_cost + depreciation_cost
-
-    # 5. Precios de Venta
-    retail_price = total_cost * data.retail_multiplier
-    wholesale_price = total_cost * data.wholesale_multiplier
-    small_item_price = total_cost * data.small_item_multiplier
+    retail_price = total_production_cost * data.retail_multiplier
+    wholesale_price = total_production_cost * data.wholesale_multiplier
+    small_item_price = total_production_cost * data.small_item_multiplier
 
     return CostCalculationOutput(
-        filament_cost=round(base_filament_cost, 2),
+        filament_cost=round(filament_cost, 2),
         electricity_cost=round(electricity_cost, 2),
         waste_cost=round(waste_cost, 2),
         depreciation_cost=round(depreciation_cost, 2),
-        total_production_cost=round(total_cost, 2),
+        total_production_cost=round(total_production_cost, 2),
         retail_price=round(retail_price, 2),
         wholesale_price=round(wholesale_price, 2),
         small_item_price=round(small_item_price, 2),
-        retail_profit=round(retail_price - total_cost, 2),
-        wholesale_profit=round(wholesale_price - total_cost, 2),
-        small_item_profit=round(small_item_price - total_cost, 2),
+        retail_profit=round(retail_price - total_production_cost, 2),
+        wholesale_profit=round(wholesale_price - total_production_cost, 2),
+        small_item_profit=round(small_item_price - total_production_cost, 2)
     )
+
+# --- Endpoints de Gestión de Materiales (CRUD) ---
+@app.post("/materials", response_model=MaterialResponse, status_code=status.HTTP_201_CREATED)
+async def create_material(
+    material: MaterialCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    new_material = Material(
+        name=material.name,
+        brand=material.brand,
+        type=material.type,
+        color=material.color,
+        cost_per_kg=material.cost_per_kg
+    )
+    db.add(new_material)
+    await db.commit()
+    await db.refresh(new_material)
+    return new_material
+
+@app.get("/materials", response_model=List[MaterialResponse])
+async def list_materials(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Material))
+    return result.scalars().all()
