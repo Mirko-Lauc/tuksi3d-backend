@@ -1,0 +1,17 @@
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: tuksi3d_db
+    restart: always
+    environment:
+      POSTGRES_USER: tuksi_user
+      POSTGRES_PASSWORD: tuksi_password
+      POSTGRES_DB: tuksi3d_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
