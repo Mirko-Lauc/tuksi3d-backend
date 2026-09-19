@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -17,6 +18,15 @@ app = FastAPI(
     title="Tuksi 3D - API",
     description="Backend de gestión y cálculo de costos para impresión 3D",
     version="1.0.0"
+)
+
+# Permitir peticiones desde cualquier origen (CORS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Evento de inicio: crea las tablas en PostgreSQL si no existen
@@ -104,7 +114,6 @@ async def create_print_job(
     print_data: PrintCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Validar material
     result = await db.execute(select(Material).where(Material.id == print_data.material_id))
     material = result.scalar_one_or_none()
     if not material:
@@ -113,7 +122,6 @@ async def create_print_job(
             detail=f"Material con ID {print_data.material_id} no encontrado"
         )
 
-    # Calcular costo de producción básico
     filament_cost = (print_data.grams_used / 1000.0) * material.cost_per_kg
     electricity_cost = ((350.0 / 1000.0) * print_data.print_time_hours) * 120.0
     waste_cost = filament_cost * 0.05
@@ -136,7 +144,6 @@ async def create_print_job(
     await db.commit()
     await db.refresh(new_print)
     
-    # Cargar la relación del material para la respuesta
     result_loaded = await db.execute(
         select(PrintJob).options(selectinload(PrintJob.material)).where(PrintJob.id == new_print.id)
     )
