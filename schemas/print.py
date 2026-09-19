@@ -1,16 +1,14 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 from schemas.material import MaterialResponse
 
-
 class PrintCreate(BaseModel):
-    name: str = Field(..., description="Nombre del trabajo o pieza (ej: Soporte Auriculares)")
-    material_id: int = Field(..., description="ID del material/filamento utilizado")
-    grams_used: float = Field(..., gt=0, description="Peso de la pieza en gramos")
-    print_time_hours: float = Field(..., gt=0, description="Tiempo de impresión en horas")
-    sale_price: float = Field(..., gt=0, description="Precio final de venta cobrado al cliente")
-
+    name: str
+    material_id: int
+    grams_used: float
+    print_time_hours: float
+    sale_price: float
 
 class PrintResponse(BaseModel):
     id: int
@@ -21,15 +19,16 @@ class PrintResponse(BaseModel):
     production_cost: float
     sale_price: float
     profit: float
+    is_public: bool
     created_at: datetime
+    user_id: int
     material: Optional[MaterialResponse] = None
 
     class Config:
         from_attributes = True
 
-
 class StatsResponse(BaseModel):
-    total_prints: int = Field(..., description="Cantidad total de impresiones realizadas")
-    total_sales: float = Field(..., description="Monto total facturado en ventas")
-    total_costs: float = Field(..., description="Costo total de producción acumulado")
-    total_profit: float = Field(..., description="Ganancia neta total acumulada")
+    total_prints: int
+    total_sales: float
+    total_costs: float
+    total_profit: float
