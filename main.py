@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 from typing import List
 
 from database import engine, Base, get_db
@@ -12,7 +13,7 @@ from models.material import Material
 from models.print import PrintJob
 from schemas.cost import CostCalculationInput, CostCalculationOutput
 from schemas.material import MaterialCreate, MaterialResponse
-from schemas.print import PrintCreate, PrintResponse
+from schemas.print import PrintCreate, PrintResponse, StatsResponse
 
 app = FastAPI(
     title="Tuksi 3D - API",
@@ -108,6 +109,47 @@ async def list_materials(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Material))
     return result.scalars().all()
 
+@app.put("/materials/{material_id}", response_model=MaterialResponse)
+async def update_material(
+    material_id: int,
+    material_data: MaterialCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Material).where(Material.id == material_id))
+    material = result.scalar_one_or_none()
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Material con ID {material_id} no encontrado"
+        )
+
+    material.name = material_data.name
+    material.brand = material_data.brand
+    material.type = material_data.type
+    material.color = material_data.color
+    material.cost_per_kg = material_data.cost_per_kg
+
+    await db.commit()
+    await db.refresh(material)
+    return material
+
+@app.delete("/materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_material(
+    material_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Material).where(Material.id == material_id))
+    material = result.scalar_one_or_none()
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Material con ID {material_id} no encontrado"
+        )
+
+    await db.delete(material)
+    await db.commit()
+    return None
+
 # --- Endpoints de Trabajos de Impresión (`prints`) ---
 @app.post("/prints", response_model=PrintResponse, status_code=status.HTTP_201_CREATED)
 async def create_print_job(
@@ -153,3 +195,40 @@ async def create_print_job(
 async def list_print_jobs(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PrintJob).options(selectinload(PrintJob.material)))
     return result.scalars().all()
+
+@app.delete("/prints/{print_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_print_job(
+    print_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(PrintJob).where(PrintJob.id == print_id))
+    print_job = result.scalar_one_or_none()
+    if not print_job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Impresión con ID {print_id} no encontrada"
+        )
+
+    await db.delete(print_job)
+    await db.commit()
+    return None
+
+# --- Endpoint del Dashboard (Estadísticas Totales) ---
+@app.get("/stats", response_model=StatsResponse)
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(
+            func.count(PrintJob.id).label("total_prints"),
+            func.coalesce(func.sum(PrintJob.sale_price), 0.0).label("total_sales"),
+            func.coalesce(func.sum(PrintJob.production_cost), 0.0).label("total_costs"),
+            func.coalesce(func.sum(PrintJob.profit), 0.0).label("total_profit")
+        )
+    )
+    stats = result.one()
+    
+    return StatsResponse(
+        total_prints=stats.total_prints,
+        total_sales=round(stats.total_sales, 2),
+        total_costs=round(stats.total_costs, 2),
+        total_profit=round(stats.total_profit, 2)
+    )

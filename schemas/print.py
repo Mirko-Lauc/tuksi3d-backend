@@ -26,4 +26,10 @@ class PrintResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        
+
+
+class StatsResponse(BaseModel):
+    total_prints: int = Field(..., description="Cantidad total de impresiones realizadas")
+    total_sales: float = Field(..., description="Monto total facturado en ventas")
+    total_costs: float = Field(..., description="Costo total de producción acumulado")
+    total_profit: float = Field(..., description="Ganancia neta total acumulada")
