@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuksi 3D - Control Panel Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans pb-10">
+
+    <!-- MODAL LOGIN / REGISTRO -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-950/90 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-sm w-full space-y-4">
+            <h2 id="auth-title" class="text-xl font-bold text-center text-indigo-400">Iniciar Sesión</h2>
+            <form id="form-auth" onsubmit="handleAuth(event)" class="space-y-3">
+                <input type="text" id="auth-username" placeholder="Usuario" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                <input type="email" id="auth-email" placeholder="Email (Solo para registro)" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white hidden">
+                <input type="password" id="auth-password" placeholder="Contraseña" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                <button type="submit" id="auth-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded text-xs transition">
+                    Ingresar
+                </button>
+            </form>
+            <p class="text-center text-xs text-slate-400">
+                <span id="auth-toggle-text">¿No tenés cuenta?</span> 
+                <button onclick="toggleAuthMode()" class="text-indigo-400 hover:underline font-bold" id="auth-toggle-btn">Registrate</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- NAVEGACIÓN -->
+    <nav class="bg-slate-800 border-b border-slate-700 p-4">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-indigo-400">Tuksi 3D Pro</h1>
+            <div class="flex items-center gap-3">
+                <span id="user-badge" class="text-xs bg-indigo-900 text-indigo-200 px-3 py-1 rounded-full border border-indigo-700 hidden"></span>
+                <button onclick="logout()" id="logout-btn" class="text-xs text-rose-400 hover:underline font-bold hidden">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- METRICAS -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-slate-400 text-xs">Trabajos Totales</p>
+                <h3 class="text-2xl font-bold mt-1 text-white" id="stat-prints">-</h3>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-slate-400 text-xs">Ventas Totales</p>
+                <h3 class="text-2xl font-bold mt-1 text-emerald-400" id="stat-sales">$0</h3>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-slate-400 text-xs">Costos de Producción</p>
+                <h3 class="text-2xl font-bold mt-1 text-rose-400" id="stat-costs">$0</h3>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <p class="text-slate-400 text-xs">Ganancia Neta</p>
+                <h3 class="text-2xl font-bold mt-1 text-indigo-400" id="stat-profit">$0</h3>
+            </div>
+        </section>
+
+        <!-- COTIZADOR Y HISTORIAL -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- COTIZADOR Y REGISTRO -->
+            <section class="bg-slate-800 p-5 rounded-xl border border-indigo-500/30 lg:col-span-1 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                    <h2 class="text-lg font-bold text-white">Cotizador Rápido</h2>
+                    <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded">En Vivo</span>
+                </div>
+
+                <form id="form-calc" class="space-y-3" oninput="calculateLive()">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Nombre del Trabajo</label>
+                        <input type="text" id="calc-name" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white" placeholder="Ej: Soporte Gamer">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Cliente</label>
+                            <input type="text" id="calc-client-name" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white" placeholder="Nombre">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Teléfono</label>
+                            <input type="text" id="calc-client-phone" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white" placeholder="Teléfono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Material</label>
+                        <select id="calc-material" onchange="calculateLive()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Gramos (g)</label>
+                            <input type="number" id="calc-grams" value="100" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Horas</label>
+                            <input type="number" id="calc-hours" value="5" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Margen Deseado (%)</label>
+                        <input type="number" id="calc-margin" value="150" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    </div>
+                </form>
+
+                <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700 space-y-1.5 text-xs">
+                    <div class="flex justify-between text-slate-400">
+                        <span>Costo Producción:</span>
+                        <span id="res-cost" class="font-medium text-rose-400">$0</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Ganancia Sugerida:</span>
+                        <span id="res-profit" class="font-medium text-indigo-400">$0</span>
+                    </div>
+                    <div class="flex justify-between text-sm font-bold text-white border-t border-slate-800 pt-1.5">
+                        <span>Precio Sugerido:</span>
+                        <span id="res-total" class="text-emerald-400">$0</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="copyQuote()" class="w-1/2 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 rounded text-xs">Copiar Texto</button>
+                    <button onclick="saveCurrentQuote()" class="w-1/2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded text-xs">Guardar Trabajo</button>
+                </div>
+            </section>
+
+            <!-- HISTORIAL DE TRABAJOS CON BUSCADOR Y FILTROS -->
+            <section class="bg-slate-800 p-5 rounded-xl border border-slate-700 lg:col-span-2 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-700 pb-3">
+                    <h2 class="text-lg font-bold text-white">Pedidos e Historial</h2>
+                    
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <select id="filter-status" onchange="filterHistory()" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                            <option value="todos">Todos los Estados</option>
+                            <option value="Pendiente">🟡 Pendientes</option>
+                            <option value="En Impresión">🔵 En Impresión</option>
+                            <option value="Completado">🟢 Completados</option>
+                        </select>
+                        <input type="text" id="search-history" oninput="filterHistory()" placeholder="🔍 Buscar pedido/cliente..." class="bg-slate-900 border border-slate-700 rounded px-3 py-1 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="text-slate-400 uppercase bg-slate-900/50">
+                            <tr>
+                                <th class="p-2.5">Trabajo / Cliente</th>
+                                <th class="p-2.5">Material</th>
+                                <th class="p-2.5">Costo / Venta</th>
+                                <th class="p-2.5">Estado</th>
+                                <th class="p-2.5 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-prints-body" class="divide-y divide-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- CARGA DE MATERIALES Y AL CATÁLOGO -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- REGISTRAR NUEVO FILAMENTO -->
+            <section class="bg-slate-800 p-5 rounded-xl border border-slate-700 lg:col-span-1 space-y-3">
+                <h2 class="text-lg font-bold text-white border-b border-slate-700 pb-2">Agregar Bobina de Filamento</h2>
+                <form id="form-material" class="space-y-2" onsubmit="saveMaterial(event)">
+                    <input type="text" id="mat-name" placeholder="Nombre (Ej: PLA Premium Negro)" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="mat-brand" placeholder="Marca (Ej: Grilon3)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        <input type="text" id="mat-type" placeholder="Tipo (PLA/ABS)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="mat-color" placeholder="Color" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        <input type="number" id="mat-price" placeholder="Precio $/kg" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    </div>
+                    <input type="number" id="mat-stock" placeholder="Stock Inicial en gramos (Ej: 1000)" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded text-xs">Guardar Bobina</button>
+                </form>
+            </section>
+
+            <!-- AGREGAR MODELO AL CATÁLOGO -->
+            <section class="bg-slate-800 p-5 rounded-xl border border-slate-700 lg:col-span-2 space-y-3">
+                <h2 class="text-lg font-bold text-white border-b border-slate-700 pb-2">Agregar Modelo al Catálogo</h2>
+                <form id="form-product" class="grid grid-cols-1 sm:grid-cols-2 gap-3" onsubmit="saveProduct(event)">
+                    <input type="text" id="prod-name" placeholder="Nombre (Ej: Maceta Cabeza)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="text" id="prod-category" list="category-suggestions" placeholder="Categoría (Escribí o elegí)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <datalist id="category-suggestions"></datalist>
+
+                    <input type="number" id="prod-grams" placeholder="Gramos (g)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="number" id="prod-hours" placeholder="Horas de impresión" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="number" id="prod-price" placeholder="Precio Sugerido ($)" required class="sm:col-span-2 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    
+                    <button type="submit" class="sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded text-xs">Guardar Modelo en Catálogo</button>
+                </form>
+            </section>
+        </div>
+
+        <!-- CATÁLOGO DE PRODUCTOS -->
+        <section class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-700 pb-3">
+                <h2 class="text-lg font-bold text-white">Catálogo de Modelos (Compartido)</h2>
+                <div class="flex flex-wrap gap-2" id="category-filters"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="catalog-grid"></div>
+        </section>
+
+    </main>
+
+ <script>
+    const API_URL = "http://127.0.0.1:8000";
+    let token = localStorage.getItem("tuksi_token");
+    let currentUsername = localStorage.getItem("tuksi_username");
+    let isRegisterMode = false;
+
+    let materialsList = [];
+    let allProducts = [];
+    let allPrints = [];
+
+    function getAuthHeaders() {
+        return {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        };
+    }
+
+    function toggleAuthMode() {
+        isRegisterMode = !isRegisterMode;
+        document.getElementById('auth-title').innerText = isRegisterMode ? "Crear Cuenta" : "Iniciar Sesión";
+        document.getElementById('auth-btn').innerText = isRegisterMode ? "Registrarme" : "Ingresar";
+        
+        const emailInput = document.getElementById('auth-email');
+        if (isRegisterMode) {
+            emailInput.classList.remove('hidden');
+            emailInput.setAttribute('required', 'required');
+        } else {
+            emailInput.classList.add('hidden');
+            emailInput.removeAttribute('required');
+        }
+
+        document.getElementById('auth-toggle-text').innerText = isRegisterMode ? "¿Ya tenés cuenta?" : "¿No tenés cuenta?";
+        document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? "Ingresá" : "Registrate";
+    }
+
+    async function handleAuth(e) {
+        e.preventDefault();
+        const username = document.getElementById('auth-username').value;
+        const password = document.getElementById('auth-password').value;
+
+        try {
+            if (isRegisterMode) {
+                const email = document.getElementById('auth-email').value;
+                const res = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || "Error al registrarse");
+                    return;
+                }
+                alert("¡Cuenta creada exitosamente! Ahora podés ingresar.");
+                toggleAuthMode();
+            } else {
+                const formData = new URLSearchParams();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    alert("Usuario o contraseña incorrectos");
+                    return;
+                }
+
+                const data = await res.json();
+                token = data.access_token;
+                currentUsername = username;
+                localStorage.setItem("tuksi_token", token);
+                localStorage.setItem("tuksi_username", username);
+
+                document.getElementById('auth-modal').classList.add('hidden');
+                initApp();
+            }
+        } catch (error) {
+            alert("Ocurrió un error de conexión con el servidor.");
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("tuksi_token");
+        localStorage.removeItem("tuksi_username");
+        location.reload();
+    }
+
+    async function initApp() {
+        if (!token) {
+            document.getElementById('auth-modal').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('auth-modal').classList.add('hidden');
+        document.getElementById('user-badge').innerText = `👤 ${currentUsername}`;
+        document.getElementById('user-badge').classList.remove('hidden');
+        document.getElementById('logout-btn').classList.remove('hidden');
+
+        loadDashboard();
+    }
+
+    async function loadDashboard() {
+        const resStats = await fetch(`${API_URL}/stats`, { headers: getAuthHeaders() });
+        if (resStats.status === 401) return logout();
+        const stats = await resStats.json();
+        document.getElementById('stat-prints').innerText = stats.total_prints;
+        document.getElementById('stat-sales').innerText = `$${stats.total_sales.toLocaleString()}`;
+        document.getElementById('stat-costs').innerText = `$${stats.total_costs.toLocaleString()}`;
+        document.getElementById('stat-profit').innerText = `$${stats.total_profit.toLocaleString()}`;
+
+        const resMaterials = await fetch(`${API_URL}/materials`, { headers: getAuthHeaders() });
+        materialsList = await resMaterials.json();
+        const selectMat = document.getElementById('calc-material');
+        selectMat.innerHTML = materialsList.map(m => {
+            const isLow = m.stock_grams < 200 ? '⚠️ Stock Bajo: ' : '';
+            return `<option value="${m.id}">${isLow}${m.name} (${m.stock_grams}g restantes)</option>`;
+        }).join('');
+
+        const resPrints = await fetch(`${API_URL}/prints`, { headers: getAuthHeaders() });
+        allPrints = await resPrints.json();
+        filterHistory();
+
+        const resProducts = await fetch(`${API_URL}/products`, { headers: getAuthHeaders() });
+        allProducts = await resProducts.json();
+        buildCategoryFilters();
+        renderCatalog(allProducts);
+
+        calculateLive();
+    }
+
+    function renderHistory(prints) {
+        const tableBody = document.getElementById('table-prints-body');
+        if (prints.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-slate-500 py-4">No se encontraron pedidos.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = prints.map(p => `
+            <tr class="hover:bg-slate-700/30">
+                <td class="p-2.5">
+                    <div class="font-bold text-white">${p.name}</div>
+                    <div class="text-[10px] text-slate-400">👤 ${p.client_name || 'Sin Cliente'} ${p.client_phone ? '(' + p.client_phone + ')' : ''}</div>
+                </td>
+                <td class="p-2.5 text-slate-400">${p.material ? p.material.name : 'N/A'}</td>
+                <td class="p-2.5">
+                    <div class="text-emerald-400 font-bold">$${p.sale_price}</div>
+                    <div class="text-[10px] text-rose-400">Costo: $${p.production_cost}</div>
+                </td>
+                <td class="p-2.5">
+                    <select onchange="changeStatus(${p.id}, this.value)" class="bg-slate-900 border border-slate-700 text-[10px] rounded p-1 text-white">
+                        <option value="Pendiente" ${p.status === 'Pendiente' ? 'selected' : ''}>🟡 Pendiente</option>
+                        <option value="En Impresión" ${p.status === 'En Impresión' ? 'selected' : ''}>🔵 En Impresión</option>
+                        <option value="Completado" ${p.status === 'Completado' ? 'selected' : ''}>🟢 Completado</option>
+                    </select>
+                </td>
+                <td class="p-2.5 text-right">
+                    <button onclick="deletePrint(${p.id})" class="text-rose-500 hover:text-rose-400 font-bold text-[10px]">Eliminar</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function filterHistory() {
+        const query = document.getElementById('search-history').value.toLowerCase();
+        const statusFilter = document.getElementById('filter-status').value;
+
+        const filtered = allPrints.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(query) || 
+                                 (p.client_name && p.client_name.toLowerCase().includes(query));
+            const matchesStatus = statusFilter === 'todos' || p.status === statusStatus;
+            return matchesSearch && matchesStatus;
+        });
+
+        renderHistory(filtered);
+    }
+
+    function buildCategoryFilters() {
+        const categories = ['todos', ...new Set(allProducts.map(p => p.category.trim()))];
+        const container = document.getElementById('category-filters');
+        container.innerHTML = categories.map(cat => `
+            <button onclick="filterCategory('${cat}')" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 capitalize rounded-full text-xs transition">
+                ${cat}
+            </button>
+        `).join('');
+
+        const datalist = document.getElementById('category-suggestions');
+        datalist.innerHTML = categories.filter(c => c !== 'todos').map(c => `<option value="${c}">`).join('');
+    }
+
+    function renderCatalog(products) {
+        const grid = document.getElementById('catalog-grid');
+        if (products.length === 0) {
+            grid.innerHTML = `<p class="col-span-full text-slate-500 text-xs text-center py-4">No hay productos guardados en esta categoría.</p>`;
+            return;
+        }
+        grid.innerHTML = products.map(prod => `
+            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2">
+                <div class="flex justify-between items-start">
+                    <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5 rounded capitalize">${prod.category}</span>
+                    <span class="text-xs font-bold text-emerald-400">$${prod.suggested_price}</span>
+                </div>
+                <h3 class="font-bold text-white text-sm">${prod.name}</h3>
+                <div class="text-[10px] text-slate-400">⚖️ ${prod.grams_required}g | ⏱️ ${prod.print_time_hours}h</div>
+                <button onclick="loadIntoCotizator('${prod.name}', ${prod.grams_required}, ${prod.print_time_hours})" class="w-full bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 py-1 rounded text-xs transition">
+                    Cotizar Modelo
+                </button>
+            </div>
+        `).join('');
+    }
+
+    function filterCategory(cat) {
+        if (cat === 'todos') renderCatalog(allProducts);
+        else renderCatalog(allProducts.filter(p => p.category.toLowerCase() === cat.toLowerCase()));
+    }
+
+    async function saveMaterial(e) {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('mat-name').value,
+            brand: document.getElementById('mat-brand').value,
+            type: document.getElementById('mat-type').value,
+            color: document.getElementById('mat-color').value,
+            cost_per_kg: parseFloat(document.getElementById('mat-price').value),
+            stock_grams: parseFloat(document.getElementById('mat-stock').value)
+        };
+        await fetch(`${API_URL}/materials`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        document.getElementById('form-material').reset();
+        loadDashboard();
+    }
+
+    async function saveProduct(e) {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('prod-name').value,
+            category: document.getElementById('prod-category').value.trim(),
+            grams_required: parseFloat(document.getElementById('prod-grams').value),
+            print_time_hours: parseFloat(document.getElementById('prod-hours').value),
+            suggested_price: parseFloat(document.getElementById('prod-price').value)
+        };
+        await fetch(`${API_URL}/products`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        document.getElementById('form-product').reset();
+        loadDashboard();
+    }
+
+    async function changeStatus(id, newStatus) {
+        await fetch(`${API_URL}/prints/${id}/status?new_status=${encodeURIComponent(newStatus)}`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+        loadDashboard();
+    }
+
+    function loadIntoCotizator(name, grams, hours) {
+        document.getElementById('calc-name').value = name;
+        document.getElementById('calc-grams').value = grams;
+        document.getElementById('calc-hours').value = hours;
+        calculateLive();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function calculateLive() {
+        const matId = parseInt(document.getElementById('calc-material').value);
+        const grams = parseFloat(document.getElementById('calc-grams').value) || 0;
+        const hours = parseFloat(document.getElementById('calc-hours').value) || 0;
+        const margin = parseFloat(document.getElementById('calc-margin').value) || 0;
+
+        const material = materialsList.find(m => m.id === matId);
+        const costPerKg = material ? material.cost_per_kg : 18500;
+
+        const matCost = (grams / 1000) * costPerKg;
+        const elecCost = hours * 0.2 * 120;
+        const wearCost = hours * 50;
+
+        const totalCost = matCost + elecCost + wearCost;
+        const profit = totalCost * (margin / 100);
+        const totalPrice = totalCost + profit;
+
+        document.getElementById('res-cost').innerText = `$${Math.round(totalCost).toLocaleString()}`;
+        document.getElementById('res-profit').innerText = `$${Math.round(profit).toLocaleString()}`;
+        document.getElementById('res-total').innerText = `$${Math.round(totalPrice).toLocaleString()}`;
+    }
+
+    function copyQuote() {
+        const name = document.getElementById('calc-name').value || 'Pieza 3D';
+        const price = document.getElementById('res-total').innerText;
+        const text = `Hola! 👋 La cotización para "${name}" es de ${price}. Incluye material e impresión de alta resolución. ¿Avanzamos? 🚀`;
+        navigator.clipboard.writeText(text);
+        alert("¡Presupuesto copiado al portapapeles!");
+    }
+
+    async function saveCurrentQuote() {
+        const matId = parseInt(document.getElementById('calc-material').value);
+        if (!matId) {
+            alert("Por favor registrá un material primero.");
+            return;
+        }
+        const name = document.getElementById('calc-name').value || 'Trabajo Cotizado';
+        const clientName = document.getElementById('calc-client-name').value;
+        const clientPhone = document.getElementById('calc-client-phone').value;
+        const grams = parseFloat(document.getElementById('calc-grams').value) || 0;
+        const hours = parseFloat(document.getElementById('calc-hours').value) || 0;
+        const priceStr = document.getElementById('res-total').innerText.replace('$', '').replace('.', '');
+        const salePrice = parseFloat(priceStr);
+
+        const data = {
+            name: name,
+            material_id: matId,
+            grams_used: grams,
+            print_time_hours: hours,
+            sale_price: salePrice,
+            client_name: clientName,
+            client_phone: clientPhone,
+            status: "Pendiente"
+        };
+
+        await fetch(`${API_URL}/prints`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+
+        loadDashboard();
+    }
+
+    async function deletePrint(id) {
+        if (confirm("¿Eliminar este trabajo?")) {
+            await fetch(`${API_URL}/prints/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            loadDashboard();
+        }
+    }
+
+    initApp();
+</script>
+</body>
+</html>

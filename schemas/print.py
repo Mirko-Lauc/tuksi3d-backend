@@ -1,26 +1,27 @@
 from pydantic import BaseModel
-from datetime import datetime
+import datetime
 from typing import Optional
 from schemas.material import MaterialResponse
 
-class PrintCreate(BaseModel):
+class PrintBase(BaseModel):
     name: str
     material_id: int
     grams_used: float
     print_time_hours: float
     sale_price: float
+    client_name: Optional[str] = None
+    client_phone: Optional[str] = None
+    status: Optional[str] = "Pendiente"
 
-class PrintResponse(BaseModel):
+class PrintCreate(PrintBase):
+    pass
+
+class PrintResponse(PrintBase):
     id: int
-    name: str
-    material_id: int
-    grams_used: float
-    print_time_hours: float
     production_cost: float
-    sale_price: float
     profit: float
     is_public: bool
-    created_at: datetime
+    created_at: datetime.datetime
     user_id: int
     material: Optional[MaterialResponse] = None
 

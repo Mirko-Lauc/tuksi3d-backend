@@ -1,15 +1,21 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class MaterialCreate(BaseModel):
+class MaterialBase(BaseModel):
     name: str
-    brand: Optional[str] = None
+    brand: str
     type: str
-    color: Optional[str] = None
+    color: str
     cost_per_kg: float
+    stock_grams: Optional[float] = 1000.0
 
-class MaterialResponse(MaterialCreate):
+class MaterialCreate(MaterialBase):
+    pass
+
+class MaterialResponse(MaterialBase):
     id: int
+    is_public: bool
+    user_id: int
 
     class Config:
         from_attributes = True

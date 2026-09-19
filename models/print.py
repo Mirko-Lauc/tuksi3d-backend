@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
-from database import Base
 import datetime
+from database import Base
 
 class PrintJob(Base):
     __tablename__ = "prints"
@@ -14,9 +14,12 @@ class PrintJob(Base):
     production_cost = Column(Float, nullable=False)
     sale_price = Column(Float, nullable=False)
     profit = Column(Float, nullable=False)
+    client_name = Column(String, nullable=True)
+    client_phone = Column(String, nullable=True)
+    status = Column(String, default="Pendiente")
     is_public = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"))
 
-    material = relationship("Material")
-    user = relationship("User")
+    user = relationship("User", back_populates="prints")
+    material = relationship("Material", back_populates="prints")
