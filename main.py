@@ -1,13 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from database import engine, Base, get_db
 import models.material
+import models.print
 from models.material import Material
+from models.print import PrintJob
 from schemas.cost import CostCalculationInput, CostCalculationOutput
 from schemas.material import MaterialCreate, MaterialResponse
+from schemas.print import PrintCreate, PrintResponse
 
 app = FastAPI(
     title="Tuksi 3D - API",
@@ -21,7 +25,7 @@ async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-# --- Endpoint de Cálculo de Costos (Conectado a DB) ---
+# --- Endpoint de Cálculo de Costos ---
 @app.post("/calculate-cost", response_model=CostCalculationOutput)
 async def calculate_cost(
     data: CostCalculationInput,
@@ -29,7 +33,6 @@ async def calculate_cost(
 ):
     cost_per_kg = data.filament_cost_per_kg
 
-    # Si se envía un material_id, se busca el costo en la base de datos
     if data.material_id:
         result = await db.execute(select(Material).where(Material.id == data.material_id))
         material = result.scalar_one_or_none()
@@ -40,14 +43,12 @@ async def calculate_cost(
             )
         cost_per_kg = material.cost_per_kg
 
-    # Validación si no se ingresó ni material_id ni costo manual
     if cost_per_kg is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Debes ingresar un 'material_id' o especificar 'filament_cost_per_kg'"
         )
 
-    # Cálculos
     filament_cost = (data.grams_used / 1000.0) * cost_per_kg
     kwh_used = (data.printer_power_watts / 1000.0) * data.print_time_hours
     electricity_cost = kwh_used * data.electricity_kwh_rate
@@ -74,7 +75,7 @@ async def calculate_cost(
         small_item_profit=round(small_item_price - total_production_cost, 2)
     )
 
-# --- Endpoints de Gestión de Materiales (CRUD) ---
+# --- Endpoints de Materiales ---
 @app.post("/materials", response_model=MaterialResponse, status_code=status.HTTP_201_CREATED)
 async def create_material(
     material: MaterialCreate,
@@ -95,4 +96,53 @@ async def create_material(
 @app.get("/materials", response_model=List[MaterialResponse])
 async def list_materials(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Material))
+    return result.scalars().all()
+
+# --- Endpoints de Trabajos de Impresión (`prints`) ---
+@app.post("/prints", response_model=PrintResponse, status_code=status.HTTP_201_CREATED)
+async def create_print_job(
+    print_data: PrintCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Validar material
+    result = await db.execute(select(Material).where(Material.id == print_data.material_id))
+    material = result.scalar_one_or_none()
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Material con ID {print_data.material_id} no encontrado"
+        )
+
+    # Calcular costo de producción básico
+    filament_cost = (print_data.grams_used / 1000.0) * material.cost_per_kg
+    electricity_cost = ((350.0 / 1000.0) * print_data.print_time_hours) * 120.0
+    waste_cost = filament_cost * 0.05
+    depreciation_cost = (filament_cost + electricity_cost) * 0.10
+    
+    prod_cost = round(filament_cost + electricity_cost + waste_cost + depreciation_cost, 2)
+    profit = round(print_data.sale_price - prod_cost, 2)
+
+    new_print = PrintJob(
+        name=print_data.name,
+        material_id=print_data.material_id,
+        grams_used=print_data.grams_used,
+        print_time_hours=print_data.print_time_hours,
+        production_cost=prod_cost,
+        sale_price=print_data.sale_price,
+        profit=profit
+    )
+
+    db.add(new_print)
+    await db.commit()
+    await db.refresh(new_print)
+    
+    # Cargar la relación del material para la respuesta
+    result_loaded = await db.execute(
+        select(PrintJob).options(selectinload(PrintJob.material)).where(PrintJob.id == new_print.id)
+    )
+    return result_loaded.scalar_one()
+
+@app.get("/prints", response_model=List[PrintResponse])
+async def list_print_jobs(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PrintJob).options(selectinload(PrintJob.material)))
     return result.scalars().all()
