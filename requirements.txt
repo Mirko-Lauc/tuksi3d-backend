@@ -7,3 +7,4 @@ passlib
 python-jose
 bcrypt==3.2.2
 pydantic
+python-multipart
