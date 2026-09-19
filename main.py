@@ -8,6 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy.sql import func
 from passlib.context import CryptContext
 from jose import JWTError, jwt
+from sqlalchemy.orm import selectinload
 
 # Importaciones locales
 from database import engine, Base, get_db
@@ -210,7 +211,9 @@ async def get_prints(
     current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
-        select(PrintJob).where(
+        select(PrintJob)
+        .options(selectinload(PrintJob.material))
+        .where(
             (PrintJob.user_id == current_user.id) | (PrintJob.is_public == True)
         )
     )
@@ -240,3 +243,86 @@ async def get_user_stats(
         "total_costs": stats.total_costs,
         "total_profit": stats.total_profit
     }
+
+    # -------------------------------------------------------------------
+# EDICIÓN Y ELIMINACIÓN (CRUD EXTENDIDO)
+# -------------------------------------------------------------------
+
+@app.put("/materials/{material_id}", response_model=MaterialResponse)
+async def update_material(
+    material_id: int,
+    material_data: MaterialCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Material).where(
+            Material.id == material_id, 
+            Material.user_id == current_user.id
+        )
+    )
+    material = result.scalar_one_or_none()
+    
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Material no encontrado o no tenés permiso para editarlo"
+        )
+
+    material.name = material_data.name
+    material.brand = material_data.brand
+    material.type = material_data.type
+    material.color = material_data.color
+    material.cost_per_kg = material_data.cost_per_kg
+
+    await db.commit()
+    await db.refresh(material)
+    return material
+
+@app.delete("/materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_material(
+    material_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Material).where(
+            Material.id == material_id, 
+            Material.user_id == current_user.id
+        )
+    )
+    material = result.scalar_one_or_none()
+    
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Material no encontrado"
+        )
+
+    await db.delete(material)
+    await db.commit()
+    return None
+
+@app.delete("/prints/{print_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_print_job(
+    print_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(PrintJob).where(
+            PrintJob.id == print_id, 
+            PrintJob.user_id == current_user.id
+        )
+    )
+    print_job = result.scalar_one_or_none()
+    
+    if not print_job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Impresión no encontrada"
+        )
+
+    await db.delete(print_job)
+    await db.commit()
+    return None
