@@ -432,23 +432,37 @@
     }
 
     async function saveMaterial(e) {
-        e.preventDefault();
-        const data = {
-            name: document.getElementById('mat-name').value,
-            brand: document.getElementById('mat-brand').value,
-            type: document.getElementById('mat-type').value,
-            color: document.getElementById('mat-color').value,
-            cost_per_kg: parseFloat(document.getElementById('mat-price').value),
-            stock_grams: parseFloat(document.getElementById('mat-stock').value)
-        };
-        await fetch(`${API_URL}/materials`, {
+    e.preventDefault();
+    const data = {
+        name: document.getElementById('mat-name').value,
+        brand: document.getElementById('mat-brand').value,
+        type: document.getElementById('mat-type').value,
+        color: document.getElementById('mat-color').value,
+        cost_per_kg: parseFloat(document.getElementById('mat-price').value),
+        stock_grams: parseFloat(document.getElementById('mat-stock').value)
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/materials`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(data)
         });
+
+        if (!res.ok) {
+            // Si el servidor lo rechaza, esto capturará el motivo exacto
+            const err = await res.json();
+            alert("Error del servidor: " + JSON.stringify(err));
+            return; // Corta la ejecución para que no se borre el formulario
+        }
+
         document.getElementById('form-material').reset();
         loadDashboard();
+        alert("¡Bobina guardada con éxito!");
+    } catch (error) {
+        alert("Fallo de red al intentar guardar.");
     }
+}
 
     async function saveProduct(e) {
         e.preventDefault();
