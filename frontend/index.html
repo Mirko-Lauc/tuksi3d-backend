@@ -211,7 +211,9 @@
     </main>
 
  <script>
-    const API_URL = "http://127.0.0.1:8000";
+    const API_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
+    ? "http://127.0.0.1:8000" 
+    : "";
     let token = localStorage.getItem("tuksi_token");
     let currentUsername = localStorage.getItem("tuksi_username");
     let isRegisterMode = false;
