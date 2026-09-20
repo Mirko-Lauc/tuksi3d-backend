@@ -93,16 +93,16 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Gramos (g)</label>
-                            <input type="number" id="calc-grams" value="100" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                            <input type="number" id="calc-grams" step="any" value="100" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Horas</label>
-                            <input type="number" id="calc-hours" value="5" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                            <input type="number" id="calc-hours" step="any" value="5" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">Margen Deseado (%)</label>
-                        <input type="number" id="calc-margin" value="150" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        <input type="number" id="calc-margin" step="any" value="150" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                     </div>
                 </form>
 
@@ -164,9 +164,10 @@
         <!-- CARGA DE MATERIALES Y AL CATÁLOGO -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- REGISTRAR NUEVO FILAMENTO -->
+            <!-- REGISTRAR Y GESTIONAR FILAMENTO -->
             <section class="bg-slate-800 p-5 rounded-xl border border-slate-700 lg:col-span-1 space-y-3">
-                <h2 class="text-lg font-bold text-white border-b border-slate-700 pb-2">Agregar Bobina de Filamento</h2>
+                <h2 class="text-lg font-bold text-white border-b border-slate-700 pb-2">Gestión de Filamentos</h2>
+                
                 <form id="form-material" class="space-y-2" onsubmit="saveMaterial(event)">
                     <input type="text" id="mat-name" placeholder="Nombre (Ej: PLA Premium Negro)" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                     <div class="grid grid-cols-2 gap-2">
@@ -175,11 +176,19 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <input type="text" id="mat-color" placeholder="Color" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
-                        <input type="number" id="mat-price" placeholder="Precio $/kg" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        <input type="number" id="mat-price" placeholder="Precio $/kg" step="any" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                     </div>
-                    <input type="number" id="mat-stock" placeholder="Stock Inicial en gramos (Ej: 1000)" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="number" id="mat-stock" placeholder="Stock Inicial en gramos (Ej: 1000)" step="any" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded text-xs">Guardar Bobina</button>
                 </form>
+
+                <!-- NUEVA LISTA DE BOBINAS -->
+                <div class="mt-4 pt-4 border-t border-slate-700">
+                    <h3 class="text-xs font-bold text-slate-400 mb-2">Bobinas Disponibles</h3>
+                    <ul id="materials-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <!-- Las bobinas se cargarán acá -->
+                    </ul>
+                </div>
             </section>
 
             <!-- AGREGAR MODELO AL CATÁLOGO -->
@@ -190,9 +199,9 @@
                     <input type="text" id="prod-category" list="category-suggestions" placeholder="Categoría (Escribí o elegí)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                     <datalist id="category-suggestions"></datalist>
 
-                    <input type="number" id="prod-grams" placeholder="Gramos (g)" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
-                    <input type="number" id="prod-hours" placeholder="Horas de impresión" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
-                    <input type="number" id="prod-price" placeholder="Precio Sugerido ($)" required class="sm:col-span-2 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="number" id="prod-grams" placeholder="Gramos (g)" step="any" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="number" id="prod-hours" placeholder="Horas de impresión" step="any" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <input type="number" id="prod-price" placeholder="Precio Sugerido ($)" step="any" required class="sm:col-span-2 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
                     
                     <button type="submit" class="sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded text-xs">Guardar Modelo en Catálogo</button>
                 </form>
@@ -211,9 +220,11 @@
     </main>
 
  <script>
+    // URL DINÁMICA: Detecta si está en local (PC) o en producción (Render)
     const API_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
-    ? "http://127.0.0.1:8000" 
-    : "";
+        ? "http://127.0.0.1:8000" 
+        : "";
+
     let token = localStorage.getItem("tuksi_token");
     let currentUsername = localStorage.getItem("tuksi_username");
     let isRegisterMode = false;
@@ -328,6 +339,10 @@
 
         const resMaterials = await fetch(`${API_URL}/materials`, { headers: getAuthHeaders() });
         materialsList = await resMaterials.json();
+        
+        // Dibuja la lista de bobinas visual
+        renderMaterialsList();
+
         const selectMat = document.getElementById('calc-material');
         selectMat.innerHTML = materialsList.map(m => {
             const isLow = m.stock_grams < 200 ? '⚠️ Stock Bajo: ' : '';
@@ -344,6 +359,39 @@
         renderCatalog(allProducts);
 
         calculateLive();
+    }
+
+    function renderMaterialsList() {
+        const list = document.getElementById('materials-list');
+        if (materialsList.length === 0) {
+            list.innerHTML = `<li class="text-[10px] text-slate-500 text-center py-2">No hay bobinas registradas.</li>`;
+            return;
+        }
+
+        list.innerHTML = materialsList.map(m => `
+            <li class="flex justify-between items-center bg-slate-900 border border-slate-700 p-2 rounded">
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold text-white">${m.name}</span>
+                    <span class="text-[10px] text-slate-400">${m.brand} (${m.color}) | ⚖️ ${m.stock_grams}g</span>
+                </div>
+                <button onclick="deleteMaterial(${m.id})" class="text-rose-500 hover:text-rose-400 text-xs font-bold px-2" title="Eliminar bobina">❌</button>
+            </li>
+        `).join('');
+    }
+
+    async function deleteMaterial(id) {
+        if (confirm("¿Estás seguro de que querés eliminar esta bobina de tu inventario?")) {
+            try {
+                const res = await fetch(`${API_URL}/materials/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (!res.ok) throw new Error("Error al eliminar");
+                loadDashboard();
+            } catch (error) {
+                alert("No se pudo eliminar. Puede que esta bobina ya esté asignada a un trabajo impreso.");
+            }
+        }
     }
 
     function renderHistory(prints) {
@@ -385,7 +433,7 @@
         const filtered = allPrints.filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(query) || 
                                  (p.client_name && p.client_name.toLowerCase().includes(query));
-            const matchesStatus = statusFilter === 'todos' || p.status === statusStatus;
+            const matchesStatus = statusFilter === 'todos' || p.status === statusFilter;
             return matchesSearch && matchesStatus;
         });
 
@@ -432,37 +480,36 @@
     }
 
     async function saveMaterial(e) {
-    e.preventDefault();
-    const data = {
-        name: document.getElementById('mat-name').value,
-        brand: document.getElementById('mat-brand').value,
-        type: document.getElementById('mat-type').value,
-        color: document.getElementById('mat-color').value,
-        cost_per_kg: parseFloat(document.getElementById('mat-price').value),
-        stock_grams: parseFloat(document.getElementById('mat-stock').value)
-    };
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('mat-name').value,
+            brand: document.getElementById('mat-brand').value,
+            type: document.getElementById('mat-type').value,
+            color: document.getElementById('mat-color').value,
+            cost_per_kg: parseFloat(document.getElementById('mat-price').value),
+            stock_grams: parseFloat(document.getElementById('mat-stock').value)
+        };
+        
+        try {
+            const res = await fetch(`${API_URL}/materials`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data)
+            });
 
-    try {
-        const res = await fetch(`${API_URL}/materials`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data)
-        });
+            if (!res.ok) {
+                const err = await res.json();
+                alert("Error del servidor: " + JSON.stringify(err));
+                return;
+            }
 
-        if (!res.ok) {
-            // Si el servidor lo rechaza, esto capturará el motivo exacto
-            const err = await res.json();
-            alert("Error del servidor: " + JSON.stringify(err));
-            return; // Corta la ejecución para que no se borre el formulario
+            document.getElementById('form-material').reset();
+            loadDashboard();
+            alert("¡Bobina guardada con éxito!");
+        } catch (error) {
+            alert("Fallo de red al intentar guardar.");
         }
-
-        document.getElementById('form-material').reset();
-        loadDashboard();
-        alert("¡Bobina guardada con éxito!");
-    } catch (error) {
-        alert("Fallo de red al intentar guardar.");
     }
-}
 
     async function saveProduct(e) {
         e.preventDefault();
