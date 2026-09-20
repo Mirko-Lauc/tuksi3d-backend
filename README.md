@@ -1,7 +1,11 @@
-# Tuksi 3D Pro - Management & Quoting System 🚀
 
-![Tuksi 3D Banner](https://via.placeholder.com/1000x400?text=Tuksi+3D+Pro+-+3D+Printing+Management+System)
-*(Note: Replace this link with a real screenshot of your dashboard)*
+<p align="center">
+  <video width="100%" autoplay loop muted playsinline>
+    <source src="https://github.com/Mirko-Lauc/tuksi3d-backend/blob/46589b063874273502c10505b967d4a0924ef1b9/Tuksi-demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</p>
+# Tuksi 3D Pro - Management & Quoting System 
 
 ## 🇬🇧 English
 
