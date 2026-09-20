@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://github.com/Mirko-Lauc/tuksi3d-backend/blob/11b3c054bb106b7aac1345a4c157839f76aaf9d5/Tuksi-image.png" alt="Tuksi 3D Dashboard Preview" width="100%">
+  <img src="./assets/Tuksi-image.png" alt="Tuksi 3D Dashboard Preview" width="100%">
   <br><br>
-  <a href="https://github.com/Mirko-Lauc/tuksi3d-backend/blob/main/Tuksi-demo.mp4">
+  <a href="./assets/Tuksi-demo.mp4">
     <img src="https://img.shields.io/badge/Click%20to%20Watch%20Demo%20Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo">
   </a>
 </div>
