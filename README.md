@@ -1,10 +1,12 @@
 
-<p align="center">
-  <video width="100%" autoplay loop muted playsinline>
-    <source src="https://github.com/Mirko-Lauc/tuksi3d-backend/blob/46589b063874273502c10505b967d4a0924ef1b9/Tuksi-demo.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
+<div align="center">
+  <h3>🎬 Check out Tuksi 3D in Action!</h3>
+  <a href="https://github.com/Mirko-Lauc/tuksi3d-backend/blob/main/Tuksi-demo.mp4">
+    <img src="https://img.shields.io/badge/Click%20to%20Watch%20Demo%20Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo">
+  </a>
+</div>
+
+---
 # Tuksi 3D Pro - Management & Quoting System 
 
 ## 🇬🇧 English
