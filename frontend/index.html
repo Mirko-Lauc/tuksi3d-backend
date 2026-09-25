@@ -552,11 +552,11 @@
         const margin = parseFloat(document.getElementById('calc-margin').value) || 0;
 
         const material = materialsList.find(m => m.id === matId);
-        const costPerKg = material ? material.cost_per_kg : 18500;
+        const costPerKg = material ? material.cost_per_kg : 22000;
 
         const matCost = (grams / 1000) * costPerKg;
-        const elecCost = hours * 0.2 * 120;
-        const wearCost = hours * 50;
+        const elecCost = hours * 0.2 * 150;
+        const wearCost = hours * 75;
 
         const totalCost = matCost + elecCost + wearCost;
         const profit = totalCost * (margin / 100);
